@@ -145,6 +145,12 @@ def evaluate_prompt_on_example(
     example: Any,
     llm: Any
 ) -> Dict[str, Any]:
+    """
+    Roda o prompt em um exemplo:
+    1) Extrai os inputs (bug_report) e o output esperado (reference)
+    2) Monta a chain (prompt | llm) e gera a resposta do modelo
+    3) Retorna answer/reference/question para as métricas compararem
+    """
     try:
         inputs = example.inputs if hasattr(example, 'inputs') else {}
         outputs = example.outputs if hasattr(example, 'outputs') else {}
@@ -183,6 +189,15 @@ def evaluate_prompt(
     dataset_name: str,
     client: Client
 ) -> Dict[str, float]:
+    """
+    Avalia um prompt contra o dataset:
+    1) Puxa o prompt otimizado do LangSmith Hub
+    2) Carrega os exemplos do dataset de avaliação
+    3) Prepara o LLM que responde os bugs (gpt-4o-mini / LLM_MODEL)
+    4) Por exemplo: gera a resposta e calcula F1, Clarity e Precision (LLM-as-Judge)
+    5) Calcula a média de cada métrica-base entre os exemplos
+    6) Deriva Helpfulness e Correctness a partir das métricas-base
+    """
     print(f"\n🔍 Avaliando: {prompt_name}")
 
     try:
@@ -275,6 +290,15 @@ def display_results(prompt_name: str, scores: Dict[str, float]) -> bool:
 
 
 def main():
+    """
+    Fluxo principal da avaliação:
+    1) Carrega configuração de ambiente (provider + modelos de LLM)
+    2) Valida as credenciais obrigatórias conforme o provider
+    3) Inicializa o client do LangSmith e resolve o nome do projeto
+    4) Carrega o dataset local (.jsonl) e cria/atualiza no LangSmith
+    5) Resolve o username do Hub e monta a lista de prompts a avaliar
+    6) Avalia cada prompt, exibe os resultados e monta o resumo final
+    """
     print_section_header("AVALIAÇÃO DE PROMPTS OTIMIZADOS")
 
     provider = os.getenv("LLM_PROVIDER", "openai")
