@@ -62,6 +62,29 @@ Métricas Base:
 
 ---
 
+## Técnicas Aplicadas (Fase 2)
+
+> **Insight central:** as 5 métricas comparam a saída do modelo contra o campo `reference` do dataset. Otimizar, então, é **fazer a saída se parecer com a referência** — em formato e conteúdo. E como o formato das referências **muda conforme a complexidade do bug** (simples / médio / complexo), o prompt v2 foi desenhado em torno disso.
+
+Combinei **4 técnicas** (Few-shot obrigatório + 3 adicionais):
+
+| Técnica | Por que escolhi | Como apliquei |
+|---|---|---|
+| **Role Prompting** | Deixa explícito *o que o modelo faz* e ancora tom e qualidade; o papel é muito claro nesta tarefa. | O `system_prompt` abre com *"Você é um Product Manager técnico sênior, especializado em transformar bug reports e logs em User Stories ágeis…"*. |
+| **Skeleton of Thought (adaptativo)** | Controla o **formato** da saída. Defini 3 esqueletos que espelham o vocabulário real das referências: simples (`Critérios de Aceitação`), médio (`+ Contexto Técnico`), complexo (blocos `=== … ===`). | Explicitei os formatos um a um.
+| **Chain of Thought (silencioso)** | Analisar um bug exige raciocínio, mas esse raciocínio **não pode vazar** para a resposta. | 5 passos internos — incluindo *"avalie a complexidade"* — com regra explícita de **pensar internamente e responder só com a User Story final**. |
+| **Few-shot Learning** *(obrigatório)* | Exemplos ensinam o formato adaptativo melhor que qualquer descrição textual. | 3 exemplos inéditos (1 por tier), escritos no mesmo vocabulário das referências. |
+
+**Por que separar por complexidade?** Lendo os 15 exemplos do dataset, as referências escalam: *simples* = user story + critérios; *médio* = user stories + contexto técnico; *complexo* = estrutura completa com tasks e impacto. Um formato fixo penalizaria os dois extremos — informação a mais nos simples derruba a Precision; cobertura a menos nos complexos derruba o Recall/F1.
+
+**Outras decisões:**
+
+- **Few-shot com exemplos inéditos** (não os 15 do dataset): generalização honesta.
+- **Edge cases sem recusar**: para bug vago ou texto que não é bug, o prompt sempre entrega a melhor User Story possível, recusar ou pedir mais dados zeraria as métricas.
+- **System vs User**: todas as instruções, regras e exemplos ficam no `system_prompt`; o `user_prompt` carrega apenas a variável `{bug_report}`.
+
+---
+
 ## Tecnologias obrigatórias
 
 - **Linguagem:** Python 3.9+
