@@ -147,10 +147,12 @@ A otimização foi iterativa, guiada pelas métricas + uma ferramenta de inspeç
 
 ### Evidências (screenshots)
 
+**1. Iteração com Experimentos:**
+
 <img width="2297" height="312" alt="image" src="https://github.com/user-attachments/assets/fb71c678-f8e2-40f3-9490-13030a553e98" />
 
 
-**1. Dataset de avaliação com 15 exemplos:**
+**2. Dataset de avaliação com 15 exemplos:**
 
 <img width="1647" height="603" alt="image" src="https://github.com/user-attachments/assets/cf8b81c4-c913-43ed-945b-a949d96f54bf" />
 
