@@ -142,9 +142,8 @@ A otimização foi iterativa, guiada pelas métricas + uma ferramenta de inspeç
 ### Links
 
 - **Prompt v2 (público) no LangSmith Hub:** https://smith.langchain.com/hub/luguin4444/bug_to_user_story_v2
-- **Dashboard de experiments (workspace):** https://smith.langchain.com/o/447e7999-27b6-45d1-8684-bda18e078b4f/datasets/d4fd0120-f63d-471e-a9c4-a585bc3b4e87
+- **Dashboard de experiments (workspace):** https://smith.langchain.com/public/e5cf16fc-c70e-457d-8ed5-9035db8384dd/d
   - Experiment aprovado: `bug_to_user_story_v2-f10ece84`
-  - ⚠️ Datasets/experiments do LangSmith são privados do workspace — por isso as evidências abaixo vão como screenshots.
 
 ### Evidências (screenshots)
 
@@ -156,13 +155,14 @@ A otimização foi iterativa, guiada pelas métricas + uma ferramenta de inspeç
 <img width="1647" height="603" alt="image" src="https://github.com/user-attachments/assets/cf8b81c4-c913-43ed-945b-a949d96f54bf" />
 
 
-**2. Execução do prompt v2 com todas as notas ≥ 0.8:**
-
-_(cole o screenshot aqui)_
-
 **3. Tracing detalhado de pelo menos 3 exemplos:**
 
-_(cole o screenshot aqui)_
+<img width="621" height="884" alt="image" src="https://github.com/user-attachments/assets/caaf525c-4952-422e-a176-6eb3f0b9e876" />
+
+<img width="597" height="816" alt="image" src="https://github.com/user-attachments/assets/36c674a3-f2bb-42c0-aadf-65dd343a3582" />
+
+<img width="617" height="839" alt="image" src="https://github.com/user-attachments/assets/769585f6-fb8e-447a-ab32-be6979e2c87b" />
+
 
 ---
 
