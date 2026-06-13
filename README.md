@@ -71,9 +71,9 @@ Combinei **4 técnicas** (Few-shot obrigatório + 3 adicionais):
 | Técnica | Por que escolhi | Como apliquei |
 |---|---|---|
 | **Role Prompting** | Deixa explícito *o que o modelo faz* e ancora tom e qualidade; o papel é muito claro nesta tarefa. | O `system_prompt` abre com *"Você é um Product Manager técnico sênior, especializado em transformar bug reports e logs em User Stories ágeis…"*. |
-| **Skeleton of Thought (adaptativo)** | Controla o **formato** da saída. Defini 3 esqueletos que espelham o vocabulário real das referências: simples (`Critérios de Aceitação`), médio (`+ Contexto Técnico`), complexo (blocos `=== … ===`). | Explicitei os formatos um a um.
+| **Skeleton of Thought (adaptativo)** | Controla o **formato** da saída — o que mais move F1/Clarity/Precision. | 3 esqueletos que espelham o vocabulário real das referências: simples (`Critérios de Aceitação`), médio (`+ Contexto Técnico`), complexo (blocos `=== … ===`). |
 | **Chain of Thought (silencioso)** | Analisar um bug exige raciocínio, mas esse raciocínio **não pode vazar** para a resposta. | 5 passos internos — incluindo *"avalie a complexidade"* — com regra explícita de **pensar internamente e responder só com a User Story final**. |
-| **Few-shot Learning** *(obrigatório)* | Exemplos ensinam o formato adaptativo melhor que qualquer descrição textual. | 3 exemplos inéditos (1 por tier), escritos no mesmo vocabulário das referências. |
+| **Few-shot Learning** *(obrigatório)* | Exemplos ensinam o formato adaptativo melhor que qualquer descrição textual. | 4 exemplos inéditos (1 simples, 2 médios, 1 complexo), no mesmo vocabulário das referências. |
 
 **Por que separar por complexidade?** Lendo os 15 exemplos do dataset, as referências escalam: *simples* = user story + critérios; *médio* = user stories + contexto técnico; *complexo* = estrutura completa com tasks e impacto. Um formato fixo penalizaria os dois extremos — informação a mais nos simples derruba a Precision; cobertura a menos nos complexos derruba o Recall/F1.
 
@@ -82,6 +82,143 @@ Combinei **4 técnicas** (Few-shot obrigatório + 3 adicionais):
 - **Few-shot com exemplos inéditos** (não os 15 do dataset): generalização honesta.
 - **Edge cases sem recusar**: para bug vago ou texto que não é bug, o prompt sempre entrega a melhor User Story possível, recusar ou pedir mais dados zeraria as métricas.
 - **System vs User**: todas as instruções, regras e exemplos ficam no `system_prompt`; o `user_prompt` carrega apenas a variável `{bug_report}`.
+
+---
+
+## Processo de Iteração (Fase 4)
+
+A otimização foi iterativa, guiada pelas métricas + uma ferramenta de inspeção local
+(`src/inspect_prompt.py`, que mostra a resposta do modelo e o *reasoning* do juiz sem precisar de push).
+
+**Iteração 1** — média geral **0.83**, mas reprovou em **F1-Score = 0.77** (as outras 4 métricas ≥ 0.8).
+
+**Diagnóstico** (lendo as respostas geradas + o reasoning do avaliador de F1):
+
+- **Precision penalizada por _over-structuring_**: o modelo escalava o nível de complexidade e
+  adicionava seções que a referência daquele tier não tem (ex.: `Contexto Técnico` num bug simples;
+  blocos `=== ===` + `Tasks Técnicas` num bug médio).
+- **Recall penalizado por critérios genéricos**: faltava transformar detalhes concretos do bug em
+  critérios (ex.: "apenas usuários ativos") e reproduzir o `Exemplo de Cálculo` quando havia números.
+
+**Iteração 2** — ajustes no `system_prompt`:
+
+1. **Classificação de complexidade estrutural e conservadora** — o tier é definido pela *estrutura* do
+   relato (nº de frases, presença de logs/steps/severidade/múltiplos problemas), com a regra
+   "na dúvida, tier menor". `=== ===` e `Tasks Técnicas` viraram **exclusivos de bugs complexos**.
+2. **Extração obrigatória de detalhes** — cada valor/condição/regra do bug vira um critério; bugs com
+   cálculo passam a incluir `Exemplo de Cálculo:`.
+3. **Complexos mais específicos** — mecanismos técnicos concretos + bloco `Métricas de Sucesso` quando
+   há métricas de impacto.
+4. **Passos numerados ≠ complexo** — "steps to reproduce" / "Cenário" / "Fluxo do bug" descrevem UM
+   bug → continua médio. Isso fez os médios pararem de escalar para o formato complexo (recupera Precision).
+5. **Exaustividade escopada** — médios/complexos cobrem dimensões padrão (notificação, auditoria,
+   acessibilidade, meta de desempenho); **simples ficam enxutos**. O few-shot médio mais denso reforçou o padrão.
+
+### Tabela comparativa (v1 × v2)
+
+| Métrica | v1 (ilustrativo) | v2 — 1ª rodada | v2 — final ✅ |
+|---|---|---|---|
+| Helpfulness | 0.45 | 0.86 | **0.85** ✓ |
+| Correctness | 0.52 | 0.81 | **0.82** ✓ |
+| F1-Score | 0.48 | 0.77 ✗ | **0.80** ✓ |
+| Clarity | 0.50 | 0.87 | **0.87** ✓ |
+| Precision | 0.46 | 0.85 | **0.84** ✓ |
+| **Média geral** | ~0.48 | 0.83 | **0.8365** ✓ |
+
+---
+
+## Resultados Finais
+
+**Status: ✅ APROVADO** — todas as 5 métricas ≥ 0.8 (média geral **0.8365**).
+
+| Métrica | Nota | Status |
+|---|---|---|
+| Helpfulness | 0.85 | ✓ |
+| Correctness | 0.82 | ✓ |
+| F1-Score | 0.80 | ✓ |
+| Clarity | 0.87 | ✓ |
+| Precision | 0.84 | ✓ |
+
+### Links
+
+- **Prompt v2 (público) no LangSmith Hub:** https://smith.langchain.com/hub/luguin4444/bug_to_user_story_v2
+- **Dashboard de experiments (workspace):** https://smith.langchain.com/o/447e7999-27b6-45d1-8684-bda18e078b4f/datasets/d4fd0120-f63d-471e-a9c4-a585bc3b4e87
+  - Experiment aprovado: `bug_to_user_story_v2-f10ece84`
+  - ⚠️ Datasets/experiments do LangSmith são privados do workspace — por isso as evidências abaixo vão como screenshots.
+
+### Evidências (screenshots)
+
+> Cole os prints aqui (no GitHub).
+
+**1. Dataset de avaliação com 15 exemplos:**
+
+_(cole o screenshot aqui)_
+
+**2. Execução do prompt v2 com todas as notas ≥ 0.8:**
+
+_(cole o screenshot aqui)_
+
+**3. Tracing detalhado de pelo menos 3 exemplos:**
+
+_(cole o screenshot aqui)_
+
+---
+
+## Como Executar
+
+### Pré-requisitos
+- Python 3.9+
+- Conta no [LangSmith](https://smith.langchain.com) com um **handle** criado (necessário para publicar prompts públicos)
+- Chave da **OpenAI** (resposta: `gpt-4o-mini` · avaliação: `gpt-4o`)
+
+### 1. Ambiente e dependências
+```bash
+python3 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 2. Variáveis de ambiente
+```bash
+cp .env.example .env              # depois preencha os valores
+```
+```
+LANGSMITH_API_KEY=...             # sua chave do LangSmith
+LANGSMITH_TRACING=true
+USERNAME_LANGSMITH_HUB=...        # seu handle do LangSmith Hub
+LANGSMITH_PROJECT=...             # define o dataset de avaliação: {projeto}-eval
+OPENAI_API_KEY=...
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o-mini
+EVAL_MODEL=gpt-4o
+```
+
+### 3. Fases do projeto
+```bash
+# Fase 1 — pull do prompt ruim (v1) do LangSmith Hub
+python src/pull_prompts.py
+
+# Fase 2 — otimização (já entregue em prompts/bug_to_user_story_v2.yml)
+
+# Fase 3 — push do prompt otimizado (PÚBLICO) para o Hub
+python src/push_prompts.py
+
+# Fase 4 — avaliação
+python src/evaluate.py              # resumo no terminal (aprovado/reprovado)
+python src/evaluate_langsmith.py    # + loga um experiment no LangSmith (notas + reasoning por exemplo)
+```
+
+### Ferramenta auxiliar de iteração
+```bash
+# Testa o prompt LOCAL (sem precisar de push) mostrando resposta do modelo + reasoning do juiz de F1.
+python src/inspect_prompt.py            # todos os 15 exemplos
+python src/inspect_prompt.py 4 9 15     # apenas exemplos específicos (1-based)
+```
+
+### Testes de validação
+```bash
+pytest tests/test_prompts.py
+```
 
 ---
 
